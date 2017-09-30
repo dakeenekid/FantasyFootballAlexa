@@ -2,6 +2,8 @@ from flask import Flask
 from flask_ask import Ask, statement, question
 from bs4 import BeautifulSoup
 import urllib
+import re
+
 
 app = Flask(__name__)
 ask = Ask(app,"/")
@@ -31,14 +33,29 @@ def help():
 def getPrediction(playerone, playertwo):
     try:
         print "{} and {}".format(playerone,playertwo)
+        player_names = {"Greg Olson": "Greg Olsen", "le Garrett Blount":"Legarrette Blount","Odell Beckham junior":"Odell Beckham",
+                       "Christian MC caffrey":"Christian McCaffrey","jacquizz Rogers":"jacquizz Rodgers"}
+
+        # Replace substrings in line with those in rep
+        player_names = dict((re.escape(k), v) for k, v in player_names.iteritems())
+        pattern = re.compile("|".join(player_names.keys()))
+        a = pattern.sub(lambda m: player_names[re.escape(m.group(0))], playerone)
+        b = pattern.sub(lambda m: player_names[re.escape(m.group(0))], playertwo)
         if "Olson" in playerone:
             playerone = "Greg Olsen"
         if "Olson" in playertwo:
             playertwo = "Greg Olsen"
-        p1 = playerone.replace(" ","-",1).lower()
-        p1 = p1.replace(" ","",1)
-        p2 = playertwo.replace(" ","-").lower()
-        web = "https://www.fantasypros.com/nfl/start/"+p1+"-"+p2+".php"
+        if "buck" in playerone:
+            a = "javorius allen"
+        if "buck" in playertwo:
+            b = "javorius allen"
+
+        print a
+        print b
+        a = a.replace(" ","-",1).lower()
+        a = a.replace(" ","",1)
+        b = b.replace(" ","-").lower()
+        web = "https://www.fantasypros.com/nfl/start/"+a+"-"+b+".php"
         print web
         site = urllib.urlopen(web)
         # BeautifulSoup object of the HTML code

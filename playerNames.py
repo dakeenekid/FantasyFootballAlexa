@@ -1,1 +1,0 @@
-playerNames = ["Greg Olson"]

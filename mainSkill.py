@@ -2,7 +2,8 @@ from flask import Flask
 from flask_ask import Ask, statement, question
 from bs4 import BeautifulSoup
 import urllib
-import re
+import pandas as pd
+from difflib import SequenceMatcher
 
 
 app = Flask(__name__)
@@ -31,30 +32,54 @@ def help():
 @ask.intent("PredictIntent", convert={'playerone':str,'playertwo':str})
 
 def getPrediction(playerone, playertwo):
+    p1 = ""
+    p2 = ""
     try:
-        print "{} and {}".format(playerone,playertwo)
-        player_names = {"Greg Olson": "Greg Olsen", "le Garrett Blount":"Legarrette Blount","Odell Beckham junior":"Odell Beckham",
-                       "Christian MC caffrey":"Christian McCaffrey","jacquizz Rogers":"jacquizz Rodgers"}
 
-        # Replace substrings in line with those in rep
-        player_names = dict((re.escape(k), v) for k, v in player_names.iteritems())
-        pattern = re.compile("|".join(player_names.keys()))
-        a = pattern.sub(lambda m: player_names[re.escape(m.group(0))], playerone)
-        b = pattern.sub(lambda m: player_names[re.escape(m.group(0))], playertwo)
-        if "Olson" in playerone:
-            playerone = "Greg Olsen"
-        if "Olson" in playertwo:
-            playertwo = "Greg Olsen"
-        if "buck" in playerone:
-            a = "javorius allen"
-        if "buck" in playertwo:
-            b = "javorius allen"
+        players = []
+        csvdata = pd.read_csv(r'thing.csv', skipinitialspace=True, delimiter=",")
+
+        saved_column = csvdata["Names"]
+
+        for row in saved_column:
+            player = row[5:]
+            if str(player[0]).islower():
+                player = row[4:]
+            players.append(player)
+
+        for i in players:
+            m = SequenceMatcher(None, playerone, i)
+            ratio = m.ratio()
+            if ratio > .80:
+                p1 = i
+
+        for i in players:
+            m = SequenceMatcher(None, playertwo, i)
+            ratio = m.ratio()
+            if ratio > .80:
+                p2 = i
+
+        print "{} and {}".format(p1,p2)
+        if p1=="":
+            p1 = playerone
+        if p2=="":
+            p2 = playertwo
+
+        a = p1
+        b = p2
 
         print a
         print b
+
+        if(a=="Alex Smith"):
+            a="Alex Smith-sf"
+
+        if(b=="Alex Smith"):
+            b = "Alex Smith-sf"
         a = a.replace(" ","-",1).lower()
         a = a.replace(" ","",1)
         b = b.replace(" ","-").lower()
+
         web = "https://www.fantasypros.com/nfl/start/"+a+"-"+b+".php"
         print web
         site = urllib.urlopen(web)
@@ -73,7 +98,8 @@ def getPrediction(playerone, playertwo):
         return question(str(p1_name+" is a better start, according to "+p1_percent+" of fantasy experts. Would you like to ask again?"))
 
     except Exception as ex:
-        return question("I couldn't understand which players you said. Please make sure both players names are said clearly. Can you repeat that?")
+        return question("Sorry, I couldn't understand which players you said. Can you repeat that?")
+
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -26,17 +26,20 @@ def yesIntent():
 
 @ask.intent("HelpIntent")
 def help():
-    msg = "Start or Sit Fantasy is an alexa skill that can help you set your lineup before gameday. Simply give the the name of two NFL players, seperated by and/or, in order to predict the better start. Would you like to try?"
+    msg = "Start or Sit Fantasy is an alexa skill that can help you set your lineup before gameday. Simply give the the name of two NFL players, seperated by and/or, in order to predict the better start. You cannot compare kickers to anything other than kickers, or this will throw an error. Would you like to try?"
     return question(msg)
 
 @ask.intent("PredictIntent", convert={'playerone':str,'playertwo':str})
 
 def getPrediction(playerone, playertwo):
+
     p1 = ""
     p2 = ""
     try:
 
         players = []
+        ratios1 = []
+        ratios2 = []
         csvdata = pd.read_csv(r'thing.csv', skipinitialspace=True, delimiter=",")
 
         saved_column = csvdata["Names"]
@@ -49,15 +52,13 @@ def getPrediction(playerone, playertwo):
 
         for i in players:
             m = SequenceMatcher(None, playerone, i)
-            ratio = m.ratio()
-            if ratio > .80:
-                p1 = i
-
-        for i in players:
-            m = SequenceMatcher(None, playertwo, i)
-            ratio = m.ratio()
-            if ratio > .80:
-                p2 = i
+            n = SequenceMatcher(None, playertwo, i)
+            ratio1 = m.ratio()
+            ratio2 = n.ratio()
+            ratios1.append(ratio1)
+            ratios2.append(ratio2)
+        p1 = players[ratios1.index(max(ratios1))]
+        p2 = players[ratios2.index(max(ratios2))]
 
         print "{} and {}".format(p1,p2)
         if p1=="":
@@ -97,8 +98,8 @@ def getPrediction(playerone, playertwo):
         p1_name = p1_name[0]
         return question(str(p1_name+" is a better start, according to "+p1_percent+" of fantasy experts. Would you like to ask again?"))
 
-    except Exception as ex:
-        return question("Sorry, I couldn't understand which players you said. Can you repeat that?")
+    except:
+        return question("Sorry, I couldn't understand which players you said. If you are having trouble, please say, help, for more information and instrucitons. Remember, you cannot compare kickers to anything other than kickers")
 
 
 if __name__ == "__main__":
